@@ -101,9 +101,3 @@ Example Queries:
 Contribution
 
 Contributions are welcome! If you would like to contribute, please fork the repository and submit a pull request with your changes.
-License
-
-This project is licensed under the MIT License.
-Contact
-
-For any issues or questions, please open an issue in the repository.
