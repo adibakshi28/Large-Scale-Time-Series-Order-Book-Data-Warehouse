@@ -81,8 +81,7 @@ To run the order book processing mode, use the following command:
 
 ./orderbook
 
-    This command reads raw order log files (e.g., SCH.log, SCS.log) stored in the Data/ directory.
-    The system processes these logs and generates corresponding binary snapshot files (SCH.snap, SCS.snap).
+This command reads raw order log files (e.g., SCH.log, SCS.log) stored in the Data/ directory. The system processes these logs and generates corresponding binary snapshot files (SCH.snap, SCS.snap).
 
 Query Mode
 
