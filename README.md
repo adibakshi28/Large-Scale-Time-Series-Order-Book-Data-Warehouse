@@ -79,15 +79,14 @@ The entire solution is written in **C++ (using C++17)** and is designed to run o
 
 To run the order book processing mode, use the following command:
 
-./orderbook
+    ./orderbook
 
 This command reads raw order log files (e.g., SCH.log, SCS.log) stored in the Data/ directory. The system processes these logs and generates corresponding binary snapshot files (SCH.snap, SCS.snap).
 
 Query Mode
 
-To query the order book, use the following command format:
+To query the order book, use the following command format:./orderbook query <symbols> <startEpoch> <endEpoch> [<fields>]
 
-./orderbook query <symbols> <startEpoch> <endEpoch> [<fields>]
 Example Queries:
 
     Query full order book for a symbol:
