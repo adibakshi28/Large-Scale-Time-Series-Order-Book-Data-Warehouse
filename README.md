@@ -21,24 +21,19 @@ The entire solution is written in **C++ (using C++17)** and is designed to run o
 ### 1. Snapshot Storage Format
 - Fixed-size **binary format** with direct access capability.
 - Indexed using a **separate .idx file** for fast lookups.
-- **Alternatives Considered**: Text-based formats (CSV), third-party serialization libraries.
 
 ### 2. Order Book Data Structures
 - **STL Containers**: `unordered_map` for fast lookups, `std::map` for bid/ask levels.
-- **Alternatives Considered**: Priority queues, custom data structures.
 
 ### 3. Concurrency in Processing
 - **Multi-threaded file processing** (one thread per order log file).
 - **Mutex-based synchronization** for safe concurrent writes.
-- **Alternatives Considered**: Sequential processing, thread pooling.
 
 ### 4. Query Engine and Indexing
 - **Binary search** over indexed snapshots for fast queries.
-- **Alternatives Considered**: Sequential file scanning, memory-mapped files.
 
 ### 5. Error Handling and Logging
 - **Exception handling** with synchronized logging.
-- **Alternatives Considered**: Dedicated logging frameworks.
 
 ---
 
