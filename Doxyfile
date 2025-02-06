@@ -1,0 +1,6 @@
+PROJECT_NAME = "Large Scale Time Series Order Book Data Warehouse"
+INPUT = C:\Users\Aditya\Desktop\Project
+RECURSIVE = YES
+EXTRACT_ALL = YES
+GENERATE_HTML = NO
+GENERATE_LATEX = YES

@@ -1,0 +1,15 @@
+*.exe
+*.out
+
+*.o
+
+*.tmp
+*.bak
+*.snap
+*.idx
+
+*.dSYM/
+*.swp
+*.swo
+
+.vscode/
