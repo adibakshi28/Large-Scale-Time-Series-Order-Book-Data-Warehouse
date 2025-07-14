@@ -1,162 +1,360 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport"  content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>📈 Orderbook Dashboard</title>
 
-  <!-- Darkly theme -->
-  <link href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.1/dist/darkly/bootstrap.min.css" rel="stylesheet"/>
-  <!-- FontAwesome -->
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
-  <!-- DataTables CSS -->
+  <!-- Bootstrap & DataTables CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <link href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap5.min.css" rel="stylesheet"/>
 
+  <!-- FontAwesome & Inter font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+
   <style>
-    body { padding-top: 6rem; background: #121417; color: #e1e1e1; }
-    .form-section {
-      background: #1c2128; padding:1.5rem; border-radius:.5rem;
-      box-shadow:0 .125rem .25rem rgba(0,0,0,.5);
-    }
-    #resultSection { margin-top:2rem; }
-    .field-group { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.5rem; }
-    .field-group .btn { font-size:.85rem; padding:.375rem .75rem; }
-
-    /* dark inputs */
-    .form-control, .form-select {
-      background:#2a2f36; color:#e1e1e1; border:1px solid #444;
-    }
-    .form-control:focus, .form-select:focus {
-      box-shadow:0 0 0 .25rem rgba(90,95,102,.25);
+    :root {
+      --primary: #2962ff;
+      --secondary: #1e88e5;
+      --card-bg: #1a2233;
+      --card-header: #222d41;
+      --border: #344256;
+      --positive: #00c853;
+      --negative: #ff5252;
     }
 
-    /* DataTables dark tweaks */
-    .dataTables_length select, .dataTables_filter input {
-      background:#2a2f36!important; color:#e1e1e1!important; border:1px solid #444!important;
+    html, body {
+      height: 100vh;
+      margin: 0; padding: 0;
     }
-    .dataTables_length label, .dataTables_filter label { color:#e1e1e1; }
+    body {
+      display: flex; flex-direction: column;
+      font-family:'Inter',sans-serif;
+      background: linear-gradient(135deg,#0d121b 0%,#121926 100%);
+      color: #e1e1e1;
+      padding-top: 70px; /* fixed header */
+    }
+
+    /* Container grows to push footer down */
+    .container-fluid {
+      flex: 1;
+      padding: 1rem;
+      max-width: 2000px;
+      margin: 0 auto;
+    }
+    .dashboard-grid {
+      display: grid; gap: 1rem;
+    }
+
+    /* Header */
+    .app-header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: rgba(18,25,38,0.95); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: .8rem 1.5rem;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .app-logo { display:flex; align-items:center; gap:12px; font-weight:600; font-size:1.25rem; }
+    .logo-icon {
+      background:var(--primary); width:36px; height:36px; border-radius:8px;
+      display:flex; align-items:center; justify-content:center;
+    }
+
+    /* Panels */
+    .control-panel, .results-panel {
+      background: var(--card-bg);
+      border:1px solid var(--border); border-radius:12px;
+      box-shadow:0 10px 20px rgba(0,0,0,0.3);
+      overflow:hidden;
+    }
+    .panel-header, .results-header {
+      background: var(--card-header);
+      padding: .75rem 1rem;
+      display:flex; align-items:center; justify-content:space-between;
+      border-bottom:1px solid var(--border);
+    }
+    .panel-title {
+      display:flex; align-items:center; gap:8px;
+      font-weight:600; font-size:1.1rem; color:#e1e1e1;
+    }
+    .panel-body, .results-body {
+      padding:1rem;
+    }
+
+    /* performance badge */
+    .performance-indicator {
+      display:inline-flex; align-items:center; gap:4px;
+      background: rgba(30,41,59,0.7);
+      padding: .4rem .8rem; border-radius:20px;
+      font-size:.85rem;
+    }
+
+    /* Form */
+    .form-grid {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 992px) {
+      .form-grid {
+        grid-template-columns: 1fr 1fr; /* 50% / 50% */
+      }
+    }
+
+    /* Labels */
+    .form-group {
+      margin-bottom: .75rem;
+    }
+    .form-label {
+      margin-bottom: .4rem;
+      color: #a0aec0;
+      font-weight: 500;
+    }
+
+    /* Text inputs */
+    .form-control {
+      width: 100%;
+      padding: .6rem .9rem;
+      background-color: rgba(30, 41, 59, 0.7);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: #e1e1e1;
+      transition: all .2s;
+    }
+
+    /* Selects */
+    .form-select {
+      width: 100%;
+      padding: .6rem .9rem;
+      /* dark background */
+      background-color: rgba(30, 41, 59, 0.7);
+      /* light arrow SVG */
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%23e1e1e1' d='M2 0L0 2h4z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right .9rem center;
+      background-size: 8px 10px;
+      color: #e1e1e1;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      transition: all .2s;
+    }
+
+    /* Force dark bg & keep arrow on focus */
+    .form-control:focus,
+    .form-select:focus {
+      background-color: rgba(30, 41, 59, 0.7) !important;
+      color: #e1e1e1            !important;
+      border-color: var(--primary)!important;
+      box-shadow: 0 0 0 3px rgba(41, 98, 255, 0.2) !important;
+      outline: none;
+    }
+
+
+
+    /* Field toggles */
+    .field-section { background:rgba(30,41,59,0.5); border-radius:8px; padding:1rem; }
+    .field-group { display:flex; flex-wrap:wrap; gap:.5rem; }
+    .field-btn {
+      padding:.5rem .8rem; border-radius:6px; font-size:.8rem; font-weight:500;
+      border:1px solid transparent; transition:all .2s ease; cursor:pointer;
+    }
+    .field-btn:hover { opacity:1; transform:translateY(-2px); }
+    .field-btn.active { box-shadow:0 2px 5px rgba(0,0,0,0.2); }
+    .btn-bid       { background:rgba(41,98,255,0.15); color:#64b5f6; border-color:rgba(41,98,255,0.3); }
+    .btn-ask       { background:rgba(255,82,82,0.15); color:#ff8a80; border-color:rgba(255,82,82,0.3); }
+    .btn-neutral   { background:rgba(0,200,83,0.15); color:#69f0ae; border-color:rgba(0,200,83,0.3); }
+    .btn-primary   { background:rgba(30,136,229,0.15); color:#4fc3f7; border-color:rgba(30,136,229,0.3); }
+    .field-btn.active.btn-bid     { background:rgba(41,98,255,0.5); color:#bbdefb; border-color:rgba(175, 175, 175, 0.90); }
+    .field-btn.active.btn-ask     { background:rgba(255,82,82,0.5); color:#ffcdd2; border-color:rgba(175, 175, 175, 0.90);}
+    .field-btn.active.btn-neutral { background:rgba(0,200,83,0.5); color:#b9f6ca; border-color:rgba(175, 175, 175, 0.90);}
+    .field-btn.active.btn-primary { background:rgba(30,136,229,0.5); color:#b3e5fc; border-color:rgba(175, 175, 175, 0.90);}
+
+    /* Execute */
+    .execute-btn { display:flex; justify-content:flex-end; margin-top:.75rem; }
+    .btn-execute {
+      background:linear-gradient(135deg,var(--primary) 0%,var(--secondary) 100%);
+      color:#fff; border:none; padding:.6rem 1.5rem; border-radius:6px;
+      font-weight:600; display:flex; align-items:center; gap:6px;
+      transition:all .3s; box-shadow:0 3px 6px rgba(41,98,255,0.3);
+    }
+    .btn-execute:hover  { transform:translateY(-2px); box-shadow:0 5px 12px rgba(41,98,255,0.4);}
+    .btn-execute:active { transform:translateY(-1px); }
+
+    /* Table */
+    .table-responsive { border-radius:8px; overflow:hidden; }
+    table.dataTable {
+      width:100%!important; border-collapse:separate; border-spacing:0;
+    }
     table.dataTable thead th {
-      background:#2a2f36!important; color:#e1e1e1!important; border-bottom:1px solid #444!important;
+      background:var(--card-header)!important;
+      color:#a0aec0!important;
+      font-weight:600; padding:.75rem 1rem;
+      border-bottom:1px solid var(--border)!important;
     }
-    .table-striped>tbody>tr:nth-of-type(odd) {
-      --bs-table-accent-bg:#1c2128; color:#e1e1e1;
+    table.dataTable tbody td {
+      background: var(--card-bg);
+      color:#e1e1e1; padding:.6rem 1rem;
+      border-bottom:1px solid var(--border);
+    }
+    table.dataTable tbody tr:hover td {
+      background:rgba(30,41,59,0.7)!important;
+    }
+
+    /* Dark pagination */
+    .dataTables_wrapper .dataTables_paginate .pagination {
+      justify-content: flex-end; gap:.25rem; margin-top:.5rem;
+    }
+    .pagination .page-link {
+      background: var(--card-bg); color: #e1e1e1;
+      border:1px solid var(--border);
+      margin:0 .2rem;
+    }
+    .pagination .page-item.active .page-link {
+      background: var(--primary); border-color: var(--primary); color:#fff;
+    }
+    .pagination .page-link:hover {
+      background: rgba(255,255,255,0.1);
+    }
+
+    /* Sticky footer */
+    .app-footer {
+      height:60px; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      border-top:1px solid var(--border);
+      color:#718096; font-size:.85rem;
     }
   </style>
 </head>
+
 <body>
-
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="#">
-        <i class="fa-solid fa-chart-line"></i> Orderbook Dashboard
-      </a>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="app-logo">
+      <div class="logo-icon"><i class="fas fa-chart-line"></i></div>
+      <span>Orderbook Dashboard</span>
     </div>
-  </nav>
+    <div class="header-actions">
+      <span class="performance-indicator" id="headerPerf">
+        <i class="fas fa-bolt"></i> <span id="perfText">Query: — ms</span>
+      </span>
+    </div>
+  </header>
 
-  <main class="container-fluid px-4">
+  <!-- Main -->
+  <div class="container-fluid">
+    <div class="dashboard-grid">
 
-    <!-- Controls -->
-    <section class="form-section">
-      <form id="cmdForm" class="row gx-3 gy-4 align-items-end text-light">
-
-        <!-- Action -->
-        <div class="col-md-2">
-          <label for="action" class="form-label text-light">Action</label>
-          <select id="action" name="action" class="form-select form-select-dark">
-            <option value="compile">🔧 Compile</option>
-            <option value="run">▶️ Process Files</option>
-            <option value="query" selected>🔍 Query</option>
-            <option value="test">✔️ Test</option>
-            <option value="clean">🧹 Clean</option>
-          </select>
+      <!-- Control Panel -->
+      <section class="control-panel">
+        <div class="panel-header">
+          <h2 class="panel-title"><i class="fas fa-sliders-h"></i> Query Parameters</h2>
         </div>
+        <div class="panel-body">
+          <form id="cmdForm" class="text-light">
+            <div class="form-grid">
+              <!-- LEFT: Action & TS/Symbols -->
+              <div>
+                <div class="form-group">
+                  <label class="form-label">Action</label>
+                  <select id="action" name="action" class="form-select">
+                    <option value="compile">🔧 Compile</option>
+                    <option value="run">▶️ Process Files</option>
+                    <option value="query" selected>🔍 Query</option>
+                    <option value="test">✔️ Test</option>
+                    <option value="clean">🧹 Clean</option>
+                  </select>
+                </div>
+                <div id="queryLeftFields">
+                  <div class="form-group">
+                    <label class="form-label">Symbols</label>
+                    <select name="symbols" class="form-select">
+                      <option selected>SCH</option>
+                      <option>SCS</option>
+                      <option>ALL</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Start Timestamp</label>
+                    <input name="start_ts" class="form-control" value="1609724964077464154">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">End Timestamp</label>
+                    <input name="end_ts" class="form-control" value="1609724964129550454">
+                  </div>
+                </div>
+              </div>
 
-        <!-- Query Params -->
-        <div id="queryParams" class="col-md-10 row gx-3 gy-4">
+              <!-- RIGHT: Field toggles -->
+              <div id="queryRightFields">
+                <div class="form-group">
+                  <label class="form-label">Fields <small>(toggle on/off)</small></label>
+                  <div class="field-section">
+                    <div class="field-group">
+                      <!-- All 22 Field Buttons -->
+                      <button type="button" class="field-btn btn-primary"  data-field="symbol">symbol</button>
+                      <button type="button" class="field-btn btn-primary"  data-field="epoch">epoch</button>
+                      <button type="button" class="field-btn btn-bid"      data-field="bid1q">bid1q</button>
+                      <button type="button" class="field-btn btn-bid"      data-field="bid1p">bid1p</button>
+                      <button type="button" class="field-btn btn-bid"      data-field="bid2q">bid2q</button>
+                      <button type="button" class="field-btn btn-bid"      data-field="bid2p">bid2p</button>
+                      <button type="button" class="field-btn btn-bid"      data-field="bid3q">bid3q</button>
+                      <button type="button" class="field-btn btn-bid"      data-field="bid3p">bid3p</button>
+                      <button type="button" class="field-btn btn-bid"      data-field="bid4q">bid4q</button>
+                      <button type="button" class="field-btn btn-bid"      data-field="bid4p">bid4p</button>
+                      <button type="button" class="field-btn btn-bid"      data-field="bid5q">bid5q</button>
+                      <button type="button" class="field-btn btn-bid"      data-field="bid5p">bid5p</button>
+                      <button type="button" class="field-btn btn-ask"      data-field="ask1q">ask1q</button>
+                      <button type="button" class="field-btn btn-ask"      data-field="ask1p">ask1p</button>
+                      <button type="button" class="field-btn btn-ask"      data-field="ask2q">ask2q</button>
+                      <button type="button" class="field-btn btn-ask"      data-field="ask2p">ask2p</button>
+                      <button type="button" class="field-btn btn-ask"      data-field="ask3q">ask3q</button>
+                      <button type="button" class="field-btn btn-ask"      data-field="ask3p">ask3p</button>
+                      <button type="button" class="field-btn btn-ask"      data-field="ask4q">ask4q</button>
+                      <button type="button" class="field-btn btn-ask"      data-field="ask4p">ask4p</button>
+                      <button type="button" class="field-btn btn-ask"      data-field="ask5q">ask5q</button>
+                      <button type="button" class="field-btn btn-ask"      data-field="ask5p">ask5p</button>
+                      <button type="button" class="field-btn btn-neutral"  data-field="lastTradePrice">lastTradePrice</button>
+                      <button type="button" class="field-btn btn-neutral"  data-field="lastTradeQuantity">lastTradeQuantity</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-          <!-- Symbols -->
-          <div class="col-lg-2 col-md-4">
-            <label class="form-label text-light">Symbols</label>
-            <select name="symbols" class="form-select form-select-dark">
-              <option selected>SCH</option>
-              <option>SCS</option>
-              <option>ALL</option>
-            </select>
-          </div>
+            </div><!-- /.form-grid -->
 
-          <!-- Start TS -->
-          <div class="col-lg-3 col-md-4">
-            <label class="form-label text-light">Start TS</label>
-            <input name="start_ts" class="form-control form-control-dark" value="{{ start_ts }}">
-          </div>
-
-          <!-- End TS -->
-          <div class="col-lg-3 col-md-4">
-            <label class="form-label text-light">End TS</label>
-            <input name="end_ts" class="form-control form-control-dark" value="{{ end_ts }}">
-          </div>
-
-          <!-- Fields -->
-          <div class="col-lg-4 col-md-12">
-            <label class="form-label text-light">Fields <small class="text-muted">(toggle on/off)</small></label>
-            <div class="field-group" role="group">
-              <!-- all 22 buttons -->
-              <button type="button" class="btn btn-outline-primary field-btn" data-field="symbol">symbol</button>
-              <button type="button" class="btn btn-outline-primary field-btn" data-field="epoch">epoch</button>
-              <button type="button" class="btn btn-outline-secondary field-btn" data-field="bid1q">bid1q</button>
-              <button type="button" class="btn btn-outline-secondary field-btn" data-field="bid1p">bid1p</button>
-              <button type="button" class="btn btn-outline-secondary field-btn" data-field="bid2q">bid2q</button>
-              <button type="button" class="btn btn-outline-secondary field-btn" data-field="bid2p">bid2p</button>
-              <button type="button" class="btn btn-outline-secondary field-btn" data-field="bid3q">bid3q</button>
-              <button type="button" class="btn btn-outline-secondary field-btn" data-field="bid3p">bid3p</button>
-              <button type="button" class="btn btn-outline-secondary field-btn" data-field="bid4q">bid4q</button>
-              <button type="button" class="btn btn-outline-secondary field-btn" data-field="bid4p">bid4p</button>
-              <button type="button" class="btn btn-outline-secondary field-btn" data-field="bid5q">bid5q</button>
-              <button type="button" class="btn btn-outline-secondary field-btn" data-field="bid5p">bid5p</button>
-              <button type="button" class="btn btn-outline-info field-btn" data-field="ask1q">ask1q</button>
-              <button type="button" class="btn btn-outline-info field-btn" data-field="ask1p">ask1p</button>
-              <button type="button" class="btn btn-outline-info field-btn" data-field="ask2q">ask2q</button>
-              <button type="button" class="btn btn-outline-info field-btn" data-field="ask2p">ask2p</button>
-              <button type="button" class="btn btn-outline-info field-btn" data-field="ask3q">ask3q</button>
-              <button type="button" class="btn btn-outline-info field-btn" data-field="ask3p">ask3p</button>
-              <button type="button" class="btn btn-outline-info field-btn" data-field="ask4q">ask4q</button>
-              <button type="button" class="btn btn-outline-info field-btn" data-field="ask4p">ask4p</button>
-              <button type="button" class="btn btn-outline-info field-btn" data-field="ask5q">ask5q</button>
-              <button type="button" class="btn btn-outline-info field-btn" data-field="ask5p">ask5p</button>
-              <button type="button" class="btn btn-outline-success field-btn" data-field="lastTradePrice">lastTradePrice</button>
-              <button type="button" class="btn btn-outline-success field-btn" data-field="lastTradeQuantity">lastTradeQuantity</button>
+            <div class="execute-btn">
+              <button id="submitBtn" type="submit" class="btn-execute">
+                <i class="fas fa-play"></i> Execute Query
+              </button>
             </div>
-          </div>
-
+          </form>
         </div>
+      </section>
 
-        <!-- Execute -->
-        <div class="col-12 text-end">
-          <button id="submitBtn" type="submit" class="btn btn-success px-4">
-            <i class="fa-solid fa-play me-1"></i> Execute
-          </button>
+      <!-- Results Panel -->
+      <section class="results-panel">
+        <div class="results-header">
+          <h2 class="panel-title"><i class="fas fa-table"></i> Query Results</h2>
+          <span class="performance-indicator" id="resultsPerf">
+            <i class="fas fa-stopwatch"></i> <span id="elapsedTime">—</span>
+          </span>
         </div>
-      </form>
-    </section>
-
-    <!-- Results -->
-    <section id="resultSection">
-      <div class="card bg-dark border-secondary">
-        <div class="card-header bg-secondary text-light d-flex align-items-center">
-          <i class="fa-solid fa-terminal me-1"></i> Output
-          <small id="elapsedTime" class="text-muted ms-3"></small>
-        </div>
-        <div class="card-body py-3">
+        <div class="results-body">
           <div class="table-responsive" id="tableWrapper">
             <table id="resultTable" class="table table-dark table-striped table-hover w-100"></table>
           </div>
-          <pre id="rawOutput" class="mt-3 text-monospace text-light d-none"></pre>
+          <pre id="rawOutput" class="mt-3 d-none text-monospace text-light"></pre>
         </div>
-      </div>
-    </section>
+      </section>
 
-  </main>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    Orderbook Dashboard v1.0 © 2025 | High-Performance Market Data Warehouse
+  </footer>
 
   <!-- JS -->
   <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
@@ -165,108 +363,86 @@
   <script src="https://cdn.datatables.net/1.13.5/js/dataTables.bootstrap5.min.js"></script>
 
   <script>
-    const form      = $("#cmdForm");
-    const rawOutput = $("#rawOutput");
-    let dataTable   = null;
+    $(function(){
+      let table = null;
+      const raw    = $('#rawOutput');
+      const perf   = $('#elapsedTime');
+      const perfBox= $('#resultsPerf');
 
-    // show/hide query inputs
-    form.find("[name=action]")
-      .on("change", e => $("#queryParams").toggle(e.target.value==="query"))
-      .trigger("change");
+      // show/hide fields & timer
+      $('#action').on('change', function(){
+        if (this.value === 'query') {
+          $('#queryLeftFields, #queryRightFields').show();
+          perfBox.show();
+        } else {
+          $('#queryLeftFields, #queryRightFields').hide();
+          perfBox.hide();
+        }
+      }).trigger('change');
 
-    // pre-select defaults
-    const defaults = [
-      "symbol","epoch","lastTradeQuantity","lastTradePrice",
-      "bid1p","bid1q","ask1p","ask1q","bid2p","bid2q","ask2p","ask2q"
-    ];
-    $(".field-btn").each((_,b)=>{
-      const f=b.dataset.field,$b=$(b);
-      if(defaults.includes(f)){
-        $b.addClass("active")
-          .removeClass("btn-outline-primary btn-outline-secondary btn-outline-info btn-outline-success")
-          .addClass({
-            symbol:"btn-primary",epoch:"btn-primary",
-            bid1q:"btn-secondary",bid1p:"btn-secondary",bid2q:"btn-secondary",bid2p:"btn-secondary",
-            bid3q:"btn-secondary",bid3p:"btn-secondary",bid4q:"btn-secondary",bid4p:"btn-secondary",
-            bid5q:"btn-secondary",bid5p:"btn-secondary",
-            ask1q:"btn-info",ask1p:"btn-info",ask2q:"btn-info",ask2p:"btn-info",
-            ask3q:"btn-info",ask3p:"btn-info",ask4q:"btn-info",ask4p:"btn-info",
-            ask5q:"btn-info",ask5p:"btn-info",
-            lastTradePrice:"btn-success",lastTradeQuantity:"btn-success"
-          }[f]);
-      }
-    });
+      // default active fields
+      const defaults = ["symbol","epoch","lastTradePrice",
+                        "bid1p","bid1q","ask1p","ask1q","bid2p","bid2q","ask2p","ask2q"];
+      $('.field-btn').each(function(){
+        if (defaults.includes(this.dataset.field)) $(this).addClass('active');
+      });
 
-    // toggle behavior
-    $(".field-btn").on("click", function(){
-      const $b=$(this),f=$b.data("field");
-      const outline={
-        symbol:"btn-outline-primary",epoch:"btn-outline-primary",
-        bid1q:"btn-outline-secondary",bid1p:"btn-outline-secondary",bid2q:"btn-outline-secondary",bid2p:"btn-outline-secondary",
-        bid3q:"btn-outline-secondary",bid3p:"btn-outline-secondary",bid4q:"btn-outline-secondary",bid4p:"btn-outline-secondary",
-        bid5q:"btn-outline-secondary",bid5p:"btn-outline-secondary",
-        ask1q:"btn-outline-info",ask1p:"btn-outline-info",ask2q:"btn-outline-info",ask2p:"btn-outline-info",
-        ask3q:"btn-outline-info",ask3p:"btn-outline-info",ask4q:"btn-outline-info",ask4p:"btn-outline-info",
-        ask5q:"btn-outline-info",ask5p:"btn-outline-info",
-        lastTradePrice:"btn-outline-success",lastTradeQuantity:"btn-outline-success"
-      }[f];
-      const solid=outline.replace("outline-","");
-      if($b.hasClass("active")){
-        $b.removeClass(`active ${solid}`).addClass(outline);
-      } else {
-        $b.addClass(`active ${solid}`).removeClass(outline);
-      }
-    });
+      // toggle
+      $('.field-btn').click(function(){
+        $(this).toggleClass('active');
+      });
 
-    // form submit
-    form.on("submit", async ev=>{
-      ev.preventDefault();
-      rawOutput.addClass("d-none").text("");
-      $("#elapsedTime").text("");
+      // submit
+      $('#cmdForm').submit(async function(e){
+        e.preventDefault();
+        raw.addClass('d-none').text('');
+        perf.text('—');
 
-      // spinner
-      const sb=$("#submitBtn");
-      sb.prop("disabled",true)
-        .html('<i class="fa-solid fa-spinner fa-spin me-1"></i> Running…');
+        const btn = $('#submitBtn')
+          .prop('disabled', true)
+          .html('<i class="fas fa-spinner fa-spin"></i> Running…');
 
-      // tear down old table
-      if(dataTable){ dataTable.destroy(); dataTable=null; }
-      $("#tableWrapper").html(
-        `<table id="resultTable" class="table table-dark table-striped table-hover w-100"></table>`
-      );
+        // tear down old table
+        if (table) table.destroy();
+        $('#tableWrapper').html('<table id="resultTable" class="table table-dark table-striped table-hover w-100"></table>');
 
-      // build & send
-      const formData=new FormData(ev.target);
-      if($("#action").val()==="query"){
-        const sel=$(".field-btn.active").map((i,b)=>b.dataset.field).get().join(",");
-        formData.set("fields",sel);
-      }
-      const res=await fetch("/run",{method:"POST",body:formData});
-      const {output,elapsed_ms}=await res.json();
+        const fd = new FormData(this);
+        if ($('#action').val() === 'query') {
+          const sel = $('.field-btn.active').map((i,b)=>b.dataset.field).get().join(',');
+          fd.set('fields', sel);
+        }
 
-      // restore button + show time
-      sb.prop("disabled",false)
-        .html('<i class="fa-solid fa-play me-1"></i> Execute');
-      if(elapsed_ms!==undefined){
-        $("#elapsedTime").text(`⏱ ${elapsed_ms} ms`);
-      }
+        const res = await fetch('/run',{method:'POST',body:fd});
+        const { output, elapsed_ms } = await res.json();
 
-      // render results or raw
-      const lines=output.trim().split(/\r?\n/);
-      if(lines.length>1 && lines[0].includes(",")){
-        const headers=lines.shift().split(","),rows=lines.map(l=>l.split(","));
-        let thead="<thead class='table-light'><tr>";
-        headers.forEach(h=>thead+=`<th>${h}</th>`);
-        thead+="</tr></thead>";
-        $("#resultTable").append(thead).show();
-        dataTable=$("#resultTable").DataTable({
-          destroy:true,data:rows,
-          columns:headers.map(h=>({title:h})),
-          paging:true,searching:true,info:false,autoWidth:false
-        });
-      } else {
-        rawOutput.removeClass("d-none").text(output);
-      }
+        // restore UI
+        btn.prop('disabled', false).html('<i class="fas fa-play"></i> Execute Query');
+        if ($('#action').val()==='query') {
+          perf.text(`${elapsed_ms} ms`);
+          $('#perfText').text(`Query: ${elapsed_ms} ms`);
+        }
+
+        // render
+        const lines = output.trim().split(/\r?\n/);
+        if (lines.length>1 && lines[0].includes(',')) {
+          const headers = lines.shift().split(',');
+          const rows    = lines.map(l=>l.split(','));
+          let thead = '<thead><tr>';
+          headers.forEach(h=> thead+=`<th>${h}</th>`);
+          thead += '</tr></thead>';
+          $('#resultTable').append(thead);
+          table = $('#resultTable').DataTable({
+            destroy: true,
+            data: rows,
+            columns: headers.map(h=>({ title: h })),
+            paging: true, searching: true,
+            info: false, autoWidth: false,
+            order: [[1,'desc']]
+          });
+        } else {
+          raw.removeClass('d-none').text(output);
+        }
+      });
     });
   </script>
 </body>
