@@ -4,6 +4,11 @@
 This project is a **high-performance market data warehouse** designed to support **efficient research and large-scale simulations**. It ingests raw order log files, updates order books for multiple tradable instruments, persists full time-series snapshots in a compact binary format, and provides a fast query engine for retrieving historical order book states.
 
 The entire solution is written in **C++ (using C++17)** and is designed to run on **Windows OS** without external libraries.
+---
+
+## UI Screenshot
+
+![UI Dashboard](Notes/Screanshots/UI_Dashboard.png)
 
 ---
 
@@ -97,6 +102,12 @@ Example Queries:
 
     Query specific fields:
     ./orderbook query SCH 1609724964077464154 1609724964129550454 symbol,epoch,bid1p,bid1q,ask1p,ask1q
+
+---
+
+## Running UI
+- Just Run the batch file ./run.bat (It will run the Flask UI connected to C++ backend).
+- It will initlize the UI at http://127.0.0.1:5000
 
 Contribution
 
