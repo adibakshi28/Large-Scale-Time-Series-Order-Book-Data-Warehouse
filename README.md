@@ -105,7 +105,3 @@ Example Queries:
 ## Running UI
 - Just Run the batch file ./run.bat (It will run the Flask UI connected to C++ backend).
 - It will initlize the UI at http://127.0.0.1:5000
-
-Contribution
-
-Contributions are welcome! If you would like to contribute, please fork the repository and submit a pull request with your changes.
