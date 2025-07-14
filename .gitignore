@@ -4,6 +4,7 @@
 *.o
 
 *.tmp
+*.log
 *.bak
 *.snap
 *.idx

@@ -1,0 +1,4 @@
+How to run?
+
+Just run the command > run.bat
+and UI will start at http://127.0.0.1:5000

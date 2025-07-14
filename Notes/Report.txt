@@ -1,0 +1,262 @@
+Report
+Large Scale Time Series Order Book Data Warehouse
+
+Content:
+1.	Overview
+2.	Design Choices and Alternatives
+2.1. Snapshot Storage Format
+2.2. Order Book Data Structures
+2.3. Concurrency in Processing
+2.4. Query Engine and Indexing
+2.5. Error Handling and Logging
+3.	What Has Been Implemented
+3.1. Core Components
+3.2. Testing Infrastructure
+4.	Future Enhancements
+4.1. Advanced Storage Optimizations 
+4.2. Enhanced Query Capabilities
+4.3. Order Book Enhancements 
+4.4. Robustness, Monitoring, and Logging 
+4.5. Testing and Continuous Integration
+5.	Compile and Execution Instructions
+5.1. Environment Requirements 
+5.2. Compile the Main Program 
+5.3. Compile and Run Tests 
+5.4. Clean the Project 
+5.5. Execution Modes 
+5.6. Command Summary and Examples
+
+
+
+1. Overview
+The project implements a high performance market data warehouse designed to support efficient research and large scale simulations. The system ingests raw order log files, updates order books for multiple tradable instruments, persists full time series snapshots in a compact binary format, and provides a fast query engine to retrieve historical order book states. The entire solution is written in C++ (using C++17) without any external libraries, designed to run in Windows OS.
+________________________________________
+2. Design Choices and Alternatives
+2.1. Snapshot Storage Format
+Design Choice:
+•	Fixed Size Binary Format:
+Each order book snapshot is stored as a fixed size binary record that contains the snapshot’s symbol, epoch, best 5 bid and ask levels (stored as fixed arrays), and the last trade information.
+•	Benefits:
+o	Efficient Random Access: The fixed record size permits direct calculation of file offsets.
+o	Binary Search: With an accompanying index file (".idx") storing (epoch, offset) pairs, the query engine can perform binary searches to quickly locate records in a given time range.
+o	Compact and Fast: Binary files are compact and allow fast reading/writing compared to text-based formats.
+Alternatives Considered:
+•	Text-Based Formats (e.g., CSV):
+o	Pros: Human-readable and easier to debug.
+o	Cons: Higher storage overhead, slower parsing, and no constant time random access.
+•	Third Party Serialization Libraries:
+o	Although libraries (like Boost Serialization) might provide additional features, the project requirements disallow third‑party libraries.
+2.2. Order Book Data Structures
+Design Choice:
+•	Combination of STL Containers:
+o	Unordered Maps: Used for tracking individual orders (keyed by order ID) to support fast lookup during cancellations and trades.
+o	Ordered Maps:
+	Bids: Stored in a std::map with a custom descending comparator so that the best (highest) bid is always at the beginning.
+	Asks: Stored in a regular ascending std::map so that the best (lowest) ask is quickly accessible.
+Alternatives Considered:
+•	Heaps/Priority Queues:
+o	Pros: Fast retrieval of the top element.
+o	Cons: Not well suited for in place updates or removal of arbitrary orders (which is needed for cancellations and partial trades).
+•	Custom Data Structures:
+o	Although custom trees (or balanced trees, skip lists) could be more tailored for high frequency updates, the reliability and maintainability of STL containers made them the preferred choice.
+2.3. Concurrency in Processing
+Design Choice:
+•	Multithreaded File Processing:
+o	Each raw order log file is processed concurrently by a separate thread (via the BookProcessor class).
+o	Synchronization:
+	A global mutex protects console output.
+	Another mutex ensures thread safe writes to snapshot and index files when multiple threads might update the same file.
+Alternatives Considered:
+•	Sequential Processing:
+o	Simpler but less scalable as the number of input files increases.
+•	Thread Pool:
+o	More scalable for large numbers of files, but given the expected small number of input files, the thread per file approach is sufficient.
+o	I experimented with thread pooling  and custom buffered I/O (2KB, 64KB and 1MB) but the performance gains were minimal and so it was not included.
+2.4. Query Engine and Indexing
+Design Choice:
+•	Index File for Fast Queries:
+o	For each symbol, an index file (".idx") is maintained. It stores fixed size entries with the snapshot’s epoch and file offset.
+o	The Query Engine uses binary search on the index file to jump directly to snapshots within the requested time range, significantly speeding up queries.
+Alternatives Considered:
+•	Sequential Scan of Snapshot Files:
+o	Simpler but would require reading the entire file for every query, which is inefficient for large datasets.
+•	Memory Mapped Files:
+o	Could offer even faster access but would add platform specific complexity. This approach remains a potential future enhancement.
+2.5. Error Handling and Logging
+Design Choice:
+•	Exception Handling with Mutex Protected Logging:
+o	The system makes extensive use of exception handling to catch and log errors in parsing, order processing, and file I/O.
+o	Logging is synchronized via mutexes to ensure thread safety.
+Alternatives Considered:
+•	Dedicated Logging Frameworks:
+o	While these might offer advanced features (e.g., log rotation, different log levels), the project uses only the C++ standard library per requirements.
+________________________________________
+3. What Has Been Implemented
+3.1. Core Components
+•	Order Model (Order.h):
+o	Defines order attributes (timestamp, order ID, symbol, side, category, price, quantity) and enumerations for order side (BUY/SELL) and order category (NEW/CANCEL/TRADE).
+•	Order Book Management (OrderBook.h/.cpp):
+o	Maintains the state of the order book for each symbol.
+o	Uses a combination of unordered maps (for individual orders) and ordered maps (for aggregated bid and ask levels).
+o	Implements processing functions for NEW, CANCEL, and TRADE orders and produces a full snapshot reflecting the order book state.
+•	Snapshot Persistence (Snapshot.h):
+o	Defines a fixed size binary structure for snapshots that includes fixed arrays for bid and ask levels.
+o	Provides inline functions to write to and read from binary files.
+•	Book Processing (BookProcessor.h/.cpp):
+o	Reads raw log files, parses order entries, updates the corresponding order book, and writes snapshots to disk.
+o	Implements concurrent processing (one thread per file) with proper synchronization.
+o	Updates both the snapshot file (<symbol>.snap) and a corresponding index file (<symbol>.idx) for efficient queries.
+•	Query Engine (QueryEngine.h/.cpp):
+o	Reads snapshot and index files, performing a binary search on the index to rapidly locate snapshots within a given time range.
+o	Supports both a default grouped view and selective field output.
+o	Implements robust error handling and field validation.
+3.2. Testing Infrastructure
+•	Comprehensive Unit and Integration Tests (tests.cpp):
+o	Tests individual components such as order book operations (processing NEW, CANCEL, TRADE orders) and snapshot serialization/deserialization.
+o	Includes tests for the Query Engine (default view, selective output, invalid field detection, multi symbol queries, no results).
+o	Contains tests for the BookProcessor (handling empty logs, single orders, and invalid input lines).
+o	Provides an integration test that processes sample log files (e.g., for ABB and CDD) and validates the query output.
+o	Ensures proper cleanup of temporary files (logs, snapshots, index files) to maintain test isolation.
+________________________________________
+4. Future Enhancements 
+If additional time were available, the following improvements and features could be implemented:
+4.1. Advanced Storage Optimizations
+•	Delta Based Snapshots:
+o	Record only the changes (deltas) between snapshots rather than storing a full snapshot each time. This would reduce storage overhead and disk I/O.
+•	Memory Mapped File Access:
+o	Implement memory mapping to allow faster access to snapshot files and reduce the overhead of standard file I/O.
+•	Data Compression:
+o	Apply lightweight compression techniques to the snapshot data to further reduce disk usage.
+4.2. Enhanced Query Capabilities
+•	More Flexible Query Options:
+o	Add support for queries filtering by price levels, order types, or other custom metrics.
+•	Caching and Pre-Aggregation:
+o	Implement caching for frequently accessed time ranges and pre-aggregated views to improve query performance for simulations.
+•	A Query Language (DSL):
+o	Develop a simple domain specific language that allows users to specify complex queries without changing code.
+4.3. Order Book Enhancements
+•	Optimized Data Structures:
+o	Explore using specialized data structures (e.g., skip lists or custom balanced trees) tailored for the high-frequency nature of order book updates.
+•	Integrated Trade Matching Engine:
+o	Extend the system to simulate a live market environment by implementing a trade matching engine.
+4.4. Robustness, Monitoring, and Logging
+•	Advanced Logging Framework:
+o	Develop a more advanced logging system that supports log levels, file logging, and log rotation.
+•	Performance Monitoring and Profiling:
+o	Integrate performance monitoring to track CPU, memory, and I/O usage and optimize bottlenecks as needed.
+4.5. Testing and Continuous Integration
+•	Automated Testing Framework:
+o	Migrate tests to an automated unit testing framework (e.g., Google Test) to improve reporting and ease maintenance.
+•	Continuous Integration Pipeline:
+o	Set up CI/CD pipelines (using tools like GitHub Actions or Jenkins) to automatically build, test, and deploy updates.
+________________________________________
+5. Compile and Execution Instructions
+5.1. Environment Requirements
+•	Operating System:
+o	Windows (Using MinGW for make)
+•	Compiler:
+o	g++ (MinGW w64 recommended)
+•	Dependencies:
+o	No external libraries are used (only the C++ standard library with C++17).
+
+5.2. Compile the Main Program
+•	Command:
+	make
+•	Description:
+o	This command compiles all .cpp files in the Src/ directory and generates the executable orderbook.exe
+5.3. Compile and Run Tests
+•	Command:
+	make test
+•	Description:
+o	Compiles test files in the Tests/ directory, links them with shared objects from Src/, and runs orderbook_tests.exe automatically. It also automatically delete any temporary files (.log, .snap, .idx) it creates during testing
+5.4. Clean the Project
+•	Command:
+	make clean
+•	Description:
+o	This command deletes all object files (.o) and executables (.exe) from the project.
+5.5. Execution Modes
+Data Processing Mode (Default)
+•	Command:
+	./orderbook
+•	Trigger:
+o	When no command line args are passed
+•	Purpose:
+o	Reads raw order log files (e.g., SCH.log, SCS.log in the Data/ directory), processes the orders, and creates binary snapshot files (e.g., SCH.snap, SCS.snap).
+•	Output:
+o	The snapshots are stored as fixed size binary records along with corresponding index files (.idx), which are later used for querying.
+Query Mode
+•	Command:
+	./orderbook query <symbols> <startEpoch> <endEpoch> [<fields>]
+•	Trigger:
+o	When command line args are passed (writing query after orderbook.exe)
+•	Parameters:
+o	<symbols>: A single symbol (e.g., SCH), a comma-separated list of symbols (e.g., SCH,SCS), or ALL for all symbols.
+o	<startEpoch> and <endEpoch>: The time range in nanoseconds.
+o	[<fields>] (optional): A comma-separated list of allowed field names. If omitted, the default grouped view is printed. (Note: no spaces)
+o	Allowed parameters in the fields (make sure the parameters match exact)
+	Symbol & Epoch: symbol, epoch
+	Bid Fields: bid1q, bid1p, bid2q, bid2p, bid3q, bid3p, bid4q, bid4p, bid5q, bid5p
+	Ask Fields: ask1q, ask1p, ask2q, ask2p, ask3q, ask3p, ask4q, ask4p, ask5q, ask5p
+	Trade Info: lastTradePrice, lastTradeQuantity
+•	Purpose:
+o	The query engine is designed to let you retrieve order book snapshots over a specific time range. You can query for one or multiple symbols and choose to output either the complete (default grouped) view or a selective subset of fields.
+o	The snapshot returned for a specific epoch includes the cumulative effect of all orders from time 0 up to that epoch. Therefore, when you query a time range, the snapshot at the beginning of the range reflects the entire history up to that point.
+o	The query will return snapshots that include all order updates from time 0 up to the snapshot's epoch. Eg If you query from 1609724964077464154 to 1609724964129550454, you will get snapshots that reflect the order book state up to each epoch within that range.
+•	Query Types:
+o	Default Grouped View
+	If parameter is omitted ([<fields>]), the engine prints the default grouped view.
+	This view includes following attributes
+•	symbol, epoch
+•	Bid levels: Printed as a group with columns: bid5q@bid5p, bid4q@bid4p, bid3q@bid3p, bid2q@bid2p, bid1q@bid1p
+•	A separator "X"
+•	Ask levels: Printed as a group with columns: ask1q@ask1p, ask2q@ask2p, ask3q@ask3p, ask4q@ask4p, ask5q@ask5p
+•	Last trade info: lastTradePrice, lastTradeQuantity
+o	Selective Subset
+	If you specify the fields, you must provide the exact names from the allowed list (eg, symbol,epoch,bid1q,bid1p,ask1q,ask1p,lastTradePrice,lastTradeQuantity).
+	Only the specified columns will be printed in a fixed order.
+5.6. Command Summary and Examples
+Command Summary
+Command	Purpose
+make	Compile main application (orderbook.exe)
+make test	Compile & run tests (orderbook_tests.exe)
+make clean	Delete compiled files (.exe, . o)
+./orderbook	Run the program to process raw logs
+./orderbook query SCH 1609724964077464154 1609724964129550454	Run a query
+./orderbook query SCH 1609724964077464154 1609724964129550454 symbol,epoch,bid1p,bid1q,ask1p,ask1q	Run query with specific fields
+
+
+
+
+Examples
+--- Compile the Project
+	make clean
+	make
+--- Run Order Book Processing
+	./orderbook
+ 
+  
+--- Running Automatic Tests
+	make test
+   
+--- Query Full Order Book for a Symbol
+	./orderbook query SCH 1609724964077464154 1609724964129550454
+ 
+--- Query Multiple Symbols (SCH and SCS)
+	./orderbook query SCH,SCS 1609724964077464154 1609724964129550454
+ 
+
+--- Query with Specific Fields
+	./orderbook query SCH 1609724964077464154 1609724964129550454 symbol,epoch,bid1p,bid1q,ask1p,ask1q
+ 
+
+--- Query for Full Market Depth (Top 5 Levels)
+	./orderbook query SCH 1609724964077464154 1609724964129550454 bid5p,bid5q,ask5p,ask5q
+ 
+
+--- Query for Last Trade Price and Quantity
+	./orderbook query SCH 1609724964077464154 1609724964129550454 symbol,lastTradePrice,lastTradeQuantity
+ 
+
+--- Cleaning Up Build Files
+	make clean
+ 
