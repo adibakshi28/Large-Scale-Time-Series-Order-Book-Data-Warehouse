@@ -5,6 +5,8 @@ This project is a **high-performance market data warehouse** designed to support
 
 The entire solution is written in **C++ (using C++17)** and is designed to run on **Windows OS** without external libraries.
 
+![UI Dashboard](Notes/Screanshots/UI_Dashboard.png)
+
 ---
 
 ## Features
@@ -98,6 +100,8 @@ Example Queries:
     Query specific fields:
     ./orderbook query SCH 1609724964077464154 1609724964129550454 symbol,epoch,bid1p,bid1q,ask1p,ask1q
 
-Contribution
+---
 
-Contributions are welcome! If you would like to contribute, please fork the repository and submit a pull request with your changes.
+## Running UI
+- Just Run the batch file ./run.bat (It will run the Flask UI connected to C++ backend).
+- It will initlize the UI at http://127.0.0.1:5000
