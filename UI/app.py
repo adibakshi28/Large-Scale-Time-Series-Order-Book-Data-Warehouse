@@ -43,37 +43,47 @@ def run_command():
         else:
             app.logger.error("❌ Failed (code %d) in %.3f s", proc.returncode, elapsed)
 
-        return proc
+        return proc, elapsed
+
+    elapsed_ms = None
 
     # Dispatch actions
     if cmd == "compile":
         run_and_log(["make", "clean"], cwd="..")
-        proc = run_and_log(["make"], cwd="..", capture_output=True, text=True)
+        proc, _ = run_and_log(["make"], cwd="..", capture_output=True, text=True)
 
     elif cmd == "test":
-        proc = run_and_log(["make", "test"], cwd="..", capture_output=True, text=True)
+        proc, _ = run_and_log(["make", "test"], cwd="..", capture_output=True, text=True)
 
     elif cmd == "clean":
-        proc = run_and_log(["make", "clean"], cwd="..", capture_output=True, text=True)
+        proc, _ = run_and_log(["make", "clean"], cwd="..", capture_output=True, text=True)
 
     elif cmd == "run":
-        proc = run_and_log([BINARY], cwd="..", capture_output=True, text=True)
+        proc, _ = run_and_log([BINARY], cwd="..", capture_output=True, text=True)
 
     else:  # query
         syms   = request.form["symbols"]
         ts1    = request.form["start_ts"]
         ts2    = request.form["end_ts"]
         fields = request.form["fields"].strip()
+
         query_cmd = [BINARY, "query", syms, ts1, ts2]
         if fields:
             query_cmd.append(fields)
-        proc = run_and_log(query_cmd, cwd="..", capture_output=True, text=True)
+
+        # log and time via run_and_log
+        proc, elapsed = run_and_log(query_cmd, cwd="..", capture_output=True, text=True)
+        elapsed_ms = elapsed * 1000
 
     # Combine stdout/stderr for return
     output = proc.stdout or ""
     if proc.stderr:
         output += "\n\n" + proc.stderr
-    return jsonify({"output": output})
+
+    resp = {"output": output}
+    if elapsed_ms is not None:
+        resp["elapsed_ms"] = round(elapsed_ms, 2)
+    return jsonify(resp)
 
 if __name__ == "__main__":
     app.run(debug=True)
