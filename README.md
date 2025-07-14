@@ -4,9 +4,6 @@
 This project is a **high-performance market data warehouse** designed to support **efficient research and large-scale simulations**. It ingests raw order log files, updates order books for multiple tradable instruments, persists full time-series snapshots in a compact binary format, and provides a fast query engine for retrieving historical order book states.
 
 The entire solution is written in **C++ (using C++17)** and is designed to run on **Windows OS** without external libraries.
----
-
-## UI Screenshot
 
 ![UI Dashboard](Notes/Screanshots/UI_Dashboard.png)
 
